@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Heval</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: url('bg.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #111827;
+    }
+
+    .page-wrap {
+      min-height: 100vh;
+      background: rgba(255,255,255,0.14);
+      padding: 24px 0;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      background: #0b1733;
+      color: white;
+      padding: 28px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .hero-text {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 40px;
+    }
+
+    .hero-logo-wrap {
+      flex: 0 0 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+    }
+
+    .hero-logo {
+      width: 100%;
+      max-width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .actions-row button {
+      width: auto;
+      min-width: 160px;
+    }
+
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+      .hero { flex-direction: column; text-align: center; }
+      .hero h1 { font-size: 32px; }
+      .hero-logo-wrap { width: 100%; min-height: 120px; }
+      .hero-logo { max-width: 300px; max-height: 140px; }
+      .actions-row button { width: 100%; }
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-size: 16px;
+      background: rgba(255,255,255,0.96);
+    }
+
+    button {
+      background: #0b1733;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button:hover { opacity: 0.96; }
+
+    .secondary-btn {
+      background: #334155;
+    }
+
+    .muted { color: #6b7280; }
+
+    .trip {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 12px;
+      background: rgba(255,255,255,0.92);
+    }
+
+    .badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: #3730a3;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .status-available {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-left {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .success {
+      background: rgba(236,253,245,0.88);
+      color: #065f46;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .error {
+      background: rgba(254,242,242,0.9);
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      display: none;
+      white-space: pre-wrap;
+    }
+
+    .trip-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .delete-btn {
+      width: auto;
+      background: #991b1b;
+      padding: 10px 14px;
+    }
+
+    .call-link {
+      color: #1d4ed8;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: rgba(17,24,39,0.95);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .language-select {
+      width: auto;
+      min-width: 180px;
+      max-width: 220px;
+      background: rgba(255,255,255,0.96);
+      color: #111827;
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        justify-content: stretch;
+      }
+
+      .language-select {
+        width: 100%;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="container">
+      <div class="topbar">
+        <select id="languageSwitcher" class="language-select">
+          <option value="en">English</option>
+          <option value="ku">کوردی</option>
+          <option value="ar">العربية</option>
+        </select>
+      </div>
+      <div class="hero">
+        <div class="hero-text">
+          <h1 id="appTitle">Heval</h1>
+          <p id="heroSubtitle">Share a ride between cities in Kurdistan.</p>
+        </div>
+        <div class="hero-logo-wrap">
+          <img src="logo.png" alt="Heval logo" class="hero-logo" />
+        </div>
+      </div>
+
+      <div id="successBox" class="success"></div>
+      <div id="errorBox" class="error"></div>
+
+      <div class="card">
+        <h2 id="postTripTitle">Post a Trip</h2>
+        <form id="tripForm">
+          <div class="grid">
+            <input id="driver_name" placeholder="Driver name" required />
+            <input id="phone" placeholder="Phone number (07XXXXXXXXX)" pattern="^07[0-9]{9}$" maxlength="11" inputmode="numeric" required />
+
+            <select id="from_city" required>
+              <option value="Erbil">Erbil</option>
+              <option value="Sulaymaniyah">Sulaymaniyah</option>
+              <option value="Halabja">Halabja</option>
+              <option value="Duhok">Duhok</option>
+            </select>
+
+            <select id="to_city" required>
+              <option value="Duhok">Duhok</option>
+              <option value="Erbil">Erbil</option>
+              <option value="Sulaymaniyah">Sulaymaniyah</option>
+              <option value="Halabja">Halabja</option>
+            </select>
+
+            <input id="trip_date" type="date" required />
+            <input id="trip_time" type="time" />
+
+            <input id="price_iqd" type="number" placeholder="Price in IQD" required />
+            <input id="empty_seats" type="number" placeholder="Empty seats" required />
+          </div>
+          <div style="margin-top: 12px;">
+            <textarea id="notes" placeholder="Notes (route, women only, family only, pickup point, anything important)" style="width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #d1d5db; font-size: 16px; background: rgba(255,255,255,0.96); min-height: 110px; resize: vertical; font-family: Arial, sans-serif;"></textarea>
+          </div>
+          <div style="margin-top: 12px;">
+            <button type="submit" id="postTripButton">Post Trip</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 id="findTripsTitle">Find Trips</h2>
+        <p class="muted" id="findTripsDescription">Trips will only load when someone presses the button, so it does not show everything all the time.</p>
+        <div class="grid">
+          <select id="filter_from_city">
+            <option value="" id="filterFromAnyOption">From any city</option>
+            <option value="Erbil">Erbil</option>
+            <option value="Sulaymaniyah">Sulaymaniyah</option>
+            <option value="Halabja">Halabja</option>
+            <option value="Duhok">Duhok</option>
+          </select>
+
+          <select id="filter_to_city">
+            <option value="" id="filterToAnyOption">To any city</option>
+            <option value="Erbil">Erbil</option>
+            <option value="Sulaymaniyah">Sulaymaniyah</option>
+            <option value="Halabja">Halabja</option>
+            <option value="Duhok">Duhok</option>
+          </select>
+
+          <input id="filter_date" type="date" />
+          <select id="filter_limit">
+            <option value="5" id="limit5Option">Show 5 trips</option>
+            <option value="10" selected id="limit10Option">Show 10 trips</option>
+            <option value="20" id="limit20Option">Show 20 trips</option>
+            <option value="50" id="limit50Option">Show 50 trips</option>
+          </select>
+        </div>
+        <div class="actions-row">
+          <button type="button" id="searchTripsBtn">Search Trips</button>
+          <button type="button" id="showLatestTripsBtn" class="secondary-btn">Show Latest Trips</button>
+          <button type="button" id="clearFiltersBtn" class="secondary-btn">Clear Filters</button>
+        </div>
+      </div>
+
+      <div class="card" id="availableTripsCard">
+        <h2 id="availableTripsTitle">Available Trips</h2>
+        <p class="muted" id="resultsInfo" data-state="idle">Press a button above to load trips.</p>
+        <div id="tripsList"><p class='muted'>Trips are hidden until you search or press Show Latest Trips.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const SUPABASE_URL = "https://ooewklsqhogpqlsdkued.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_HP1m0PezFK6ZqzsZQnOlyA_HI6gMsDl";
+    const DELETE_PASSCODE = "1122@";
+
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const successBox = document.getElementById("successBox");
+    const errorBox = document.getElementById("errorBox");
+    const tripsList = document.getElementById("tripsList");
+    const tripForm = document.getElementById("tripForm");
+    const toast = document.getElementById("toast");
+    const resultsInfo = document.getElementById("resultsInfo");
+    const availableTripsCard = document.getElementById("availableTripsCard");
+
+    const filterFromCity = document.getElementById("filter_from_city");
+    const filterToCity = document.getElementById("filter_to_city");
+    const filterDate = document.getElementById("filter_date");
+    const filterLimit = document.getElementById("filter_limit");
+    const searchTripsBtn = document.getElementById("searchTripsBtn");
+    const showLatestTripsBtn = document.getElementById("showLatestTripsBtn");
+    const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+
+    let lastLoadedFilters = null;
+    let lastRenderedTrips = [];
+
+    const languageSwitcher = document.getElementById("languageSwitcher");
+
+    const translations = {
+      en: {
+        appTitle: "Heval",
+        heroSubtitle: "Share a ride between cities in Kurdistan.",
+        postTripTitle: "Post a Trip",
+        driverNamePlaceholder: "Driver name",
+        phonePlaceholder: "Phone number (07XXXXXXXXX)",
+        pricePlaceholder: "Price in IQD",
+        seatsPlaceholder: "Empty seats",
+        notesPlaceholder: "Notes (route, women only, family only, pickup point, anything important)",
+        postTripButton: "Post Trip",
+        findTripsTitle: "Find Trips",
+        findTripsDescription: "Trips will only load when someone presses the button, so it does not show everything all the time.",
+        filterFromAnyOption: "From any city",
+        filterToAnyOption: "To any city",
+        limit5Option: "Show 5 trips",
+        limit10Option: "Show 10 trips",
+        limit20Option: "Show 20 trips",
+        limit50Option: "Show 50 trips",
+        searchTripsBtn: "Search Trips",
+        showLatestTripsBtn: "Show Latest Trips",
+        clearFiltersBtn: "Clear Filters",
+        availableTripsTitle: "Available Trips",
+        resultsIdle: "Press a button above to load trips.",
+        tripsHidden: "Trips are hidden until you search or press Show Latest Trips.",
+        noTripsFound: "No trips found with this filter.",
+        loading: "Loading...",
+        couldNotLoad: "Could not load trips.\n\n",
+        noTripsLoaded: "No trips loaded.",
+        enterDeletePasscode: "Enter passcode to delete this trip:",
+        wrongPasscode: "Wrong passcode. Trip was not deleted.",
+        couldNotDelete: "Could not delete trip.\n\n",
+        tripDeleted: "Trip deleted",
+        statusAvailable: "Available",
+        statusLeft: "Left",
+        idLabel: "ID",
+        seatsLabel: "seats",
+        driverLabel: "Driver:",
+        phoneLabel: "Phone:",
+        notesLabel: "Notes:",
+        deleteTripButton: "Delete Trip",
+        summaryUpTo: "Showing up to",
+        newestTrips: "newest trips",
+        fromWord: "from",
+        toWord: "to",
+        onWord: "on",
+        iqdLabel: "IQD",
+        cityErbil: "Erbil",
+        citySulaymaniyah: "Sulaymaniyah",
+        cityHalabja: "Halabja",
+        cityDuhok: "Duhok"
+      },
+      ku: {
+        appTitle: "Heval",
+        heroSubtitle: "هاوبەشبوونی گەشت لەنێوان شارەکانی کوردستان.",
+        postTripTitle: "زیادکردنی گەشت",
+        driverNamePlaceholder: "ناوی شۆفێر",
+        phonePlaceholder: "ژمارەی مۆبایل (07XXXXXXXXX)",
+        pricePlaceholder: "نرخ بە دینار",
+        seatsPlaceholder: "کورسی بەتاڵ",
+        notesPlaceholder: "تێبینی (ڕێگا، تەنها ژنان، تەنها خێزان، شوێنی وەرگرتن، هەر شتێکی گرنگ)",
+        postTripButton: "زیادکردنی گەشت",
+        findTripsTitle: "دۆزینەوەی گەشتەکان",
+        findTripsDescription: "گەشتەکان تەنها کاتێک دەردەکەون کە کەسێک دوگمەکە دابگرێت، بۆ ئەوەی هەموو کاتێک هەمووی پیشان نەدرێت.",
+        filterFromAnyOption: "لە هەر شارێک",
+        filterToAnyOption: "بۆ هەر شارێک",
+        limit5Option: "پیشاندانی 5 گەشت",
+        limit10Option: "پیشاندانی 10 گەشت",
+        limit20Option: "پیشاندانی 20 گەشت",
+        limit50Option: "پیشاندانی 50 گەشت",
+        searchTripsBtn: "گەڕان بۆ گەشت",
+        showLatestTripsBtn: "نوێترین گەشتەکان",
+        clearFiltersBtn: "پاککردنەوەی فلتەر",
+        availableTripsTitle: "گەشتە بەردەستەکان",
+        resultsIdle: "دوگمەیەک لە سەرەوە دابگرە بۆ پیشاندانی گەشتەکان.",
+        tripsHidden: "گەشتەکان نادیارە تا گەڕان بکەیت یان نوێترین گەشتەکان دابگرەیت.",
+        noTripsFound: "هیچ گەشتێک نەدۆزرایەوە بەم فلتەرە.",
+        loading: "بارکردن...",
+        couldNotLoad: "ناتوانرێت گەشتەکان باربکرێن.\n\n",
+        noTripsLoaded: "هیچ گەشتێک بارنەکرا.",
+        enterDeletePasscode: "پاسکۆد بنووسە بۆ سڕینەوەی ئەم گەشتە:",
+        wrongPasscode: "پاسکۆد هەڵەیە. گەشتەکە نەسڕایەوە.",
+        couldNotDelete: "ناتوانرێت گەشتەکە بسڕدرێتەوە.\n\n",
+        tripDeleted: "گەشتەکە سڕایەوە",
+        statusAvailable: "بەردەستە",
+        statusLeft: "بەڕێکەوتووە",
+        idLabel: "ناسنامە",
+        seatsLabel: "کورسی",
+        driverLabel: "شۆفێر:",
+        phoneLabel: "مۆبایل:",
+        notesLabel: "تێبینی:",
+        deleteTripButton: "سڕینەوەی گەشت",
+        summaryUpTo: "پیشاندانی تا",
+        newestTrips: "گەشتی نوێ",
+        fromWord: "لە",
+        toWord: "بۆ",
+        onWord: "لە",
+        iqdLabel: "د.ع",
+        cityErbil: "هەولێر",
+        citySulaymaniyah: "سلێمانی",
+        cityHalabja: "هەڵەبجە",
+        cityDuhok: "دهۆک"
+      },
+      ar: {
+        appTitle: "Heval",
+        heroSubtitle: "مشاركة الرحلات بين مدن كردستان.",
+        postTripTitle: "إضافة رحلة",
+        driverNamePlaceholder: "اسم السائق",
+        phonePlaceholder: "رقم الهاتف (07XXXXXXXXX)",
+        pricePlaceholder: "السعر بالدينار",
+        seatsPlaceholder: "المقاعد الفارغة",
+        notesPlaceholder: "ملاحظات (الطريق، للنساء فقط، للعائلة فقط، نقطة الالتقاء، أي شيء مهم)",
+        postTripButton: "إضافة رحلة",
+        findTripsTitle: "البحث عن الرحلات",
+        findTripsDescription: "لن تظهر الرحلات إلا عند الضغط على الزر، حتى لا يتم عرض كل شيء طوال الوقت.",
+        filterFromAnyOption: "من أي مدينة",
+        filterToAnyOption: "إلى أي مدينة",
+        limit5Option: "إظهار 5 رحلات",
+        limit10Option: "إظهار 10 رحلات",
+        limit20Option: "إظهار 20 رحلة",
+        limit50Option: "إظهار 50 رحلة",
+        searchTripsBtn: "بحث عن الرحلات",
+        showLatestTripsBtn: "أحدث الرحلات",
+        clearFiltersBtn: "مسح الفلاتر",
+        availableTripsTitle: "الرحلات المتاحة",
+        resultsIdle: "اضغط على زر في الأعلى لإظهار الرحلات.",
+        tripsHidden: "الرحلات مخفية حتى تبحث أو تضغط على أحدث الرحلات.",
+        noTripsFound: "لم يتم العثور على رحلات بهذا الفلتر.",
+        loading: "جارٍ التحميل...",
+        couldNotLoad: "تعذر تحميل الرحلات.\n\n",
+        noTripsLoaded: "لم يتم تحميل أي رحلات.",
+        enterDeletePasscode: "أدخل رمز الحذف لهذه الرحلة:",
+        wrongPasscode: "رمز الحذف غير صحيح. لم يتم حذف الرحلة.",
+        couldNotDelete: "تعذر حذف الرحلة.\n\n",
+        tripDeleted: "تم حذف الرحلة",
+        statusAvailable: "متاح",
+        statusLeft: "غادر",
+        idLabel: "المعرف",
+        seatsLabel: "مقاعد",
+        driverLabel: "السائق:",
+        phoneLabel: "الهاتف:",
+        notesLabel: "ملاحظات:",
+        deleteTripButton: "حذف الرحلة",
+        summaryUpTo: "إظهار حتى",
+        newestTrips: "رحلة حديثة",
+        fromWord: "من",
+        toWord: "إلى",
+        onWord: "في",
+        iqdLabel: "د.ع",
+        cityErbil: "أربيل",
+        citySulaymaniyah: "السليمانية",
+        cityHalabja: "حلبجة",
+        cityDuhok: "دهوك"
+      }
+    };
+
+    let currentLanguage = "en";
+
+    function tr(key) {
+      return translations[currentLanguage][key] || translations.en[key] || key;
+    }
+
+    function applyLanguage(lang) {
+      currentLanguage = lang;
+      document.documentElement.lang = lang;
+      document.body.dir = lang === "ar" ? "rtl" : "ltr";
+
+      document.getElementById("appTitle").textContent = "Heval";
+      document.getElementById("heroSubtitle").textContent = tr("heroSubtitle");
+      document.getElementById("postTripTitle").textContent = tr("postTripTitle");
+      document.getElementById("driver_name").placeholder = tr("driverNamePlaceholder");
+      document.getElementById("phone").placeholder = tr("phonePlaceholder");
+      document.getElementById("price_iqd").placeholder = tr("pricePlaceholder");
+      document.getElementById("empty_seats").placeholder = tr("seatsPlaceholder");
+      document.getElementById("notes").placeholder = tr("notesPlaceholder");
+      document.getElementById("postTripButton").textContent = tr("postTripButton");
+      document.getElementById("findTripsTitle").textContent = tr("findTripsTitle");
+      document.getElementById("findTripsDescription").textContent = tr("findTripsDescription");
+      document.getElementById("filterFromAnyOption").textContent = tr("filterFromAnyOption");
+      document.getElementById("filterToAnyOption").textContent = tr("filterToAnyOption");
+      document.getElementById("limit5Option").textContent = tr("limit5Option");
+      document.getElementById("limit10Option").textContent = tr("limit10Option");
+      document.getElementById("limit20Option").textContent = tr("limit20Option");
+      document.getElementById("limit50Option").textContent = tr("limit50Option");
+      document.getElementById("searchTripsBtn").textContent = tr("searchTripsBtn");
+      document.getElementById("showLatestTripsBtn").textContent = tr("showLatestTripsBtn");
+      document.getElementById("clearFiltersBtn").textContent = tr("clearFiltersBtn");
+      document.getElementById("availableTripsTitle").textContent = tr("availableTripsTitle");
+
+      const resultsState = resultsInfo.dataset.state || "idle";
+      if (resultsState === "idle") {
+        resultsInfo.textContent = tr("resultsIdle");
+      }
+
+      const cityMap = {
+        Erbil: tr("cityErbil"),
+        Sulaymaniyah: tr("citySulaymaniyah"),
+        Halabja: tr("cityHalabja"),
+        Duhok: tr("cityDuhok")
+      };
+
+      document.querySelectorAll("#from_city option, #to_city option, #filter_from_city option:not([value='']), #filter_to_city option:not([value=''])").forEach(option => {
+        if (cityMap[option.value]) option.textContent = cityMap[option.value];
+      });
+
+      if (!lastLoadedFilters) {
+        tripsList.innerHTML = `<p class='muted'>${tr("tripsHidden")}</p>`;
+      } else {
+        renderTrips(lastRenderedTrips || []);
+        updateResultsSummary(lastLoadedFilters, lastRenderedTrips || []);
+      }
+
+      localStorage.setItem("heval_lang", lang);
+    }
+
+
+    function showSuccess(message) {
+      successBox.textContent = message;
+      successBox.style.display = "block";
+      errorBox.style.display = "none";
+    }
+
+    function hideSuccess() {
+      successBox.style.display = "none";
+    }
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.style.display = "block";
+      successBox.style.display = "none";
+    }
+
+    function hideError() {
+      errorBox.style.display = "none";
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+
+    function getTripDateTime(trip) {
+      if (!trip.trip_date || !trip.trip_time) return null;
+      
+      if (!trip.trip_time) {
+        return new Date(`${trip.trip_date}T23:59`);
+      }
+      return new Date(`${trip.trip_date}T${trip.trip_time}`);
+    
+    }
+
+    function getTripStatus(trip) {
+      const tripDateTime = getTripDateTime(trip);
+      if (!tripDateTime || Number.isNaN(tripDateTime.getTime())) {
+        return { key: "available", label: "Available" };
+      }
+
+      const now = new Date();
+      const oneHourAfter = new Date(tripDateTime.getTime() + 60 * 60 * 1000);
+
+      if (now < tripDateTime) {
+        return { key: "available", label: "Available" };
+      }
+
+      if (now >= tripDateTime && now < oneHourAfter) {
+        return { key: "left", label: "Left" };
+      }
+
+      return { key: "expired", label: "Expired" };
+    }
+
+
+    function updateResultsSummary(filters = {}, trips = []) {
+      const limit = Number(filters.limit || 10);
+      let summary = `${tr("summaryUpTo")} ${limit} ${tr("newestTrips")}`;
+      const parts = [];
+      const cityMap = {
+        Erbil: tr("cityErbil"),
+        Sulaymaniyah: tr("citySulaymaniyah"),
+        Halabja: tr("cityHalabja"),
+        Duhok: tr("cityDuhok")
+      };
+      if (filters.from_city) parts.push(`${tr("fromWord")} ${cityMap[filters.from_city] || filters.from_city}`);
+      if (filters.to_city) parts.push(`${tr("toWord")} ${cityMap[filters.to_city] || filters.to_city}`);
+      if (filters.trip_date) parts.push(`${tr("onWord")} ${filters.trip_date}`);
+      if (parts.length) summary += " " + parts.join(" ");
+      summary += ".";
+      resultsInfo.dataset.state = "loaded";
+      resultsInfo.textContent = summary;
+    }
+
+    function renderTrips(data) {
+      lastRenderedTrips = data || [];
+
+      if (!data || data.length === 0) {
+        tripsList.innerHTML = `<p class='muted'>${tr("noTripsFound")}</p>`;
+        return;
+      }
+
+      const cityMap = {
+        Erbil: tr("cityErbil"),
+        Sulaymaniyah: tr("citySulaymaniyah"),
+        Halabja: tr("cityHalabja"),
+        Duhok: tr("cityDuhok")
+      };
+
+      tripsList.innerHTML = data.map(trip => `
+        <div class="trip">
+          <strong>${escapeHtml(cityMap[trip.from_city] || trip.from_city)} → ${escapeHtml(cityMap[trip.to_city] || trip.to_city)}</strong>
+          <div>
+            <span class="badge ${getTripStatus(trip).key === 'available' ? 'status-available' : 'status-left'}">${getTripStatus(trip).key === 'available' ? tr("statusAvailable") : tr("statusLeft")}</span>
+            <span class="badge">${tr("idLabel")} ${escapeHtml(trip.id)}</span>
+            <span class="badge">${escapeHtml(trip.price_iqd)} ${tr("iqdLabel")}</span>
+            <span class="badge">${escapeHtml(trip.empty_seats)} ${tr("seatsLabel")}</span>
+            <span class="badge">${escapeHtml(trip.trip_date)}</span>
+            <span class="badge">${escapeHtml(trip.trip_time || "")}</span>
+          </div>
+          <p><b>${tr("driverLabel")}</b> ${escapeHtml(trip.driver_name)}</p>
+          <p><b>${tr("phoneLabel")}</b> <a class="call-link" href="tel:${escapeHtml(trip.phone)}">${escapeHtml(trip.phone)}</a></p>
+          ${trip.notes ? `<p><b>${tr("notesLabel")}</b> ${escapeHtml(trip.notes)}</p>` : ""}
+          <div class="trip-actions">
+            <button class="delete-btn" onclick="deleteTrip(${Number(trip.id)})">${tr("deleteTripButton")}</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function loadTrips(filters = {}) {
+      tripsList.innerHTML = tr("loading");
+      hideError();
+
+      let query = client
+        .from("trips")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (filters.from_city) {
+        query = query.eq("from_city", filters.from_city);
+      }
+      if (filters.to_city) {
+        query = query.eq("to_city", filters.to_city);
+      }
+      if (filters.trip_date) {
+        query = query.eq("trip_date", filters.trip_date);
+      }
+
+      const limit = Number(filters.limit || 10);
+      query = query.limit(limit);
+
+      const { data, error } = await query;
+
+      if (error) {
+        showError(tr("couldNotLoad") + error.message);
+        tripsList.innerHTML = `<p class="muted">${tr("noTripsLoaded")}</p>`;
+        return;
+      }
+
+      const trips = data || [];
+      const expiredTrips = trips.filter(trip => getTripStatus(trip).key === "expired");
+      const visibleTrips = trips.filter(trip => getTripStatus(trip).key !== "expired");
+
+      if (expiredTrips.length) {
+        await Promise.all(
+          expiredTrips.map(trip =>
+            client.from("trips").delete().eq("id", trip.id)
+          )
+        );
+      }
+
+      updateResultsSummary(filters, visibleTrips);
+      renderTrips(visibleTrips);
+    }
+
+    async function deleteTrip(id) {
+      const entered = prompt(tr("enterDeletePasscode"));
+      if (entered !== DELETE_PASSCODE) {
+        showError(tr("wrongPasscode"));
+        return;
+      }
+
+      const { error } = await client
+        .from("trips")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        showError(tr("couldNotDelete") + error.message);
+        return;
+      }
+
+      hideSuccess();
+      hideError();
+      showToast(tr("tripDeleted"));
+      await searchWithFilters();
+    }
+
+    async function searchWithFilters() {
+      lastLoadedFilters = {
+        from_city: filterFromCity.value,
+        to_city: filterToCity.value,
+        trip_date: filterDate.value,
+        limit: filterLimit.value
+      };
+      await loadTrips(lastLoadedFilters);
+      availableTripsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    async function showLatestTrips() {
+      lastLoadedFilters = { limit: filterLimit.value };
+      await loadTrips(lastLoadedFilters);
+      availableTripsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    clearFiltersBtn.addEventListener("click", () => {
+      filterFromCity.value = "";
+      filterToCity.value = "";
+      filterDate.value = "";
+      filterLimit.value = "10";
+      resultsInfo.dataset.state = "idle";
+      resultsInfo.textContent = tr("resultsIdle");
+      tripsList.innerHTML = `<p class="muted">${tr("tripsHidden")}</p>`;
+      lastLoadedFilters = null;
+      hideError();
+    });
+
+    searchTripsBtn.addEventListener("click", searchWithFilters);
+    showLatestTripsBtn.addEventListener("click", showLatestTrips);
+
+
+    languageSwitcher.addEventListener("change", () => {
+      applyLanguage(languageSwitcher.value);
+    });
+
+    const savedLanguage = localStorage.getItem("heval_lang") || "en";
+    languageSwitcher.value = savedLanguage;
+    applyLanguage(savedLanguage);
+
+    setInterval(async () => {
+      if (lastLoadedFilters) {
+        await loadTrips(lastLoadedFilters);
+      }
+    }, 60000);
+
+    tripForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const payload = {
+        driver_name: document.getElementById("driver_name").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        from_city: document.getElementById("from_city").value,
+        to_city: document.getElementById("to_city").value,
+        trip_date: document.getElementById("trip_date").value,
+        trip_time: document.getElementById("trip_time").value,
+        price_iqd: Number(document.getElementById("price_iqd").value),
+        empty_seats: Number(document.getElementById("empty_seats").value),
+        notes: document.getElementById("notes").value.trim(),
+        route_name: "Other"
+      };
+
+      const { error } = await client.from("trips").insert([payload]);
+
+      if (error) {
+        showError("Could not post trip.\n\n" + error.message);
+        return;
+      }
+
+      tripForm.reset();
+      hideSuccess();
+      filterFromCity.value = payload.from_city;
+      filterToCity.value = payload.to_city;
+      filterDate.value = payload.trip_date;
+      await searchWithFilters();
+    });
+
+    
+    // Iraqi phone number validation
+    const phoneInput = document.getElementById("phone");
+    phoneInput.addEventListener("input", function () {
+      this.value = this.value.replace(/[^0-9]/g, "");
+      if (this.value.length >= 2 && !this.value.startsWith("07")) {
+        this.value = "07";
+      }
+      if (this.value.length > 11) {
+        this.value = this.value.slice(0, 11);
+      }
+    });
+
+    window.deleteTrip = deleteTrip;
+  </script>
+</body>
+</html>
