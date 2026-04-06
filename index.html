@@ -202,6 +202,21 @@
       font-weight: 700;
     }
 
+    .route-line {
+      direction: ltr;
+      unicode-bidi: isolate;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: nowrap;
+    }
+
+    .route-arrow {
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+
+
     .toast {
       position: fixed;
       right: 20px;
@@ -248,22 +263,7 @@
         max-width: none;
       }
     }
-  
-.developed-badge{
-  position:absolute;
-  top:8px;
-  left:50%;
-  transform:translateX(-50%);
-  background:linear-gradient(90deg,#06b6d4,#22c55e);
-  color:#001018;
-  padding:6px 16px;
-  border-radius:999px;
-  font-size:13px;
-  font-weight:bold;
-  box-shadow:0 0 10px rgba(0,0,0,0.25);
-}
-
-</style>
+  </style>
 </head>
 <body>
   <div class="page-wrap">
@@ -276,7 +276,6 @@
         </select>
       </div>
       <div class="hero">
-<div class="developed-badge">Developed by Ahmed Yasin</div>
         <div class="hero-text">
           <h1 id="appTitle">Heval</h1>
           <p id="heroSubtitle">Share a ride between cities in Kurdistan.</p>
@@ -296,6 +295,7 @@
             <input id="driver_name" placeholder="Driver name" required />
             <input id="phone" placeholder="Phone number (07XXXXXXXXX)" pattern="^07[0-9]{9}$" maxlength="11" inputmode="numeric" required />
 
+            <div id="fromLabel" style="font-weight:600; margin-bottom:6px;">From</div>
             <select id="from_city" required>
               <option value="Erbil">Erbil</option>
               <option value="Sulaymaniyah">Sulaymaniyah</option>
@@ -303,6 +303,7 @@
               <option value="Duhok">Duhok</option>
             </select>
 
+            <div id="toLabel" style="font-weight:600; margin-bottom:6px;">To</div>
             <select id="to_city" required>
               <option value="Duhok">Duhok</option>
               <option value="Erbil">Erbil</option>
@@ -311,7 +312,7 @@
             </select>
 
             <input id="trip_date" type="date" required />
-            <input id="trip_time" type="time" />
+            <input id="trip_time" type="time" placeholder="Time" />
 
             <input id="price_iqd" type="number" placeholder="Price in IQD" required />
             <input id="empty_seats" type="number" placeholder="Empty seats" required />
@@ -448,7 +449,11 @@
         cityErbil: "Erbil",
         citySulaymaniyah: "Sulaymaniyah",
         cityHalabja: "Halabja",
-        cityDuhok: "Duhok"
+        cityDuhok: "Duhok",
+        fromLabel: "From",
+        toLabel: "To",
+        datePlaceholder: "Date",
+        timePlaceholder: "Time"
       },
       ku: {
         appTitle: "Heval",
@@ -499,7 +504,11 @@
         cityErbil: "هەولێر",
         citySulaymaniyah: "سلێمانی",
         cityHalabja: "هەڵەبجە",
-        cityDuhok: "دهۆک"
+        cityDuhok: "دهۆک",
+        fromLabel: "لە",
+        toLabel: "بۆ",
+        datePlaceholder: "بەروار",
+        timePlaceholder: "کات"
       },
       ar: {
         appTitle: "Heval",
@@ -550,7 +559,11 @@
         cityErbil: "أربيل",
         citySulaymaniyah: "السليمانية",
         cityHalabja: "حلبجة",
-        cityDuhok: "دهوك"
+        cityDuhok: "دهوك",
+        fromLabel: "من",
+        toLabel: "إلى",
+        datePlaceholder: "التاريخ",
+        timePlaceholder: "الوقت"
       }
     };
 
@@ -573,6 +586,10 @@
       document.getElementById("price_iqd").placeholder = tr("pricePlaceholder");
       document.getElementById("empty_seats").placeholder = tr("seatsPlaceholder");
       document.getElementById("notes").placeholder = tr("notesPlaceholder");
+      document.getElementById("fromLabel").textContent = tr("fromLabel");
+      document.getElementById("toLabel").textContent = tr("toLabel");
+      document.getElementById("trip_date").placeholder = tr("datePlaceholder");
+      document.getElementById("trip_time").placeholder = tr("timePlaceholder");
       document.getElementById("postTripButton").textContent = tr("postTripButton");
       document.getElementById("findTripsTitle").textContent = tr("findTripsTitle");
       document.getElementById("findTripsDescription").textContent = tr("findTripsDescription");
@@ -683,21 +700,42 @@
 
     function updateResultsSummary(filters = {}, trips = []) {
       const limit = Number(filters.limit || 10);
-      let summary = `${tr("summaryUpTo")} ${limit} ${tr("newestTrips")}`;
-      const parts = [];
       const cityMap = {
         Erbil: tr("cityErbil"),
         Sulaymaniyah: tr("citySulaymaniyah"),
         Halabja: tr("cityHalabja"),
         Duhok: tr("cityDuhok")
       };
-      if (filters.from_city) parts.push(`${tr("fromWord")} ${cityMap[filters.from_city] || filters.from_city}`);
-      if (filters.to_city) parts.push(`${tr("toWord")} ${cityMap[filters.to_city] || filters.to_city}`);
-      if (filters.trip_date) parts.push(`${tr("onWord")} ${filters.trip_date}`);
-      if (parts.length) summary += " " + parts.join(" ");
-      summary += ".";
+
+      const fromText = filters.from_city ? (cityMap[filters.from_city] || filters.from_city) : "";
+      const toText = filters.to_city ? (cityMap[filters.to_city] || filters.to_city) : "";
+      const dateText = filters.trip_date || "";
+
+      let summary = "";
+
+      if (currentLanguage === "ar") {
+        summary = `${tr("summaryUpTo")} ${limit} ${tr("newestTrips")}`;
+        if (fromText && toText) {
+          summary += ` <span class="route-line"><span>${escapeHtml(fromText)}</span><span class="route-arrow">→</span><span>${escapeHtml(toText)}</span></span>`;
+        } else if (fromText) {
+          summary += ` ${tr("fromWord")} ${escapeHtml(fromText)}`;
+        } else if (toText) {
+          summary += ` ${tr("toWord")} ${escapeHtml(toText)}`;
+        }
+        if (dateText) {
+          summary += ` ${tr("onWord")} ${escapeHtml(dateText)}`;
+        }
+        summary += ".";
+      } else {
+        summary = `${tr("summaryUpTo")} ${limit} ${tr("newestTrips")}`;
+        if (fromText) summary += ` ${tr("fromWord")} ${escapeHtml(fromText)}`;
+        if (toText) summary += ` ${tr("toWord")} ${escapeHtml(toText)}`;
+        if (dateText) summary += ` ${tr("onWord")} ${escapeHtml(dateText)}`;
+        summary += ".";
+      }
+
       resultsInfo.dataset.state = "loaded";
-      resultsInfo.textContent = summary;
+      resultsInfo.innerHTML = summary;
     }
 
     function renderTrips(data) {
@@ -717,7 +755,7 @@
 
       tripsList.innerHTML = data.map(trip => `
         <div class="trip">
-          <strong>${escapeHtml(cityMap[trip.from_city] || trip.from_city)} → ${escapeHtml(cityMap[trip.to_city] || trip.to_city)}</strong>
+          <strong class="route-line"><span>${escapeHtml(cityMap[trip.from_city] || trip.from_city)}</span><span class="route-arrow">→</span><span>${escapeHtml(cityMap[trip.to_city] || trip.to_city)}</span></strong>
           <div>
             <span class="badge ${getTripStatus(trip).key === 'available' ? 'status-available' : 'status-left'}">${getTripStatus(trip).key === 'available' ? tr("statusAvailable") : tr("statusLeft")}</span>
             <span class="badge">${tr("idLabel")} ${escapeHtml(trip.id)}</span>
@@ -728,7 +766,7 @@
           </div>
           <p><b>${tr("driverLabel")}</b> ${escapeHtml(trip.driver_name)}</p>
           <p><b>${tr("phoneLabel")}</b> <a class="call-link" href="tel:${escapeHtml(trip.phone)}">${escapeHtml(trip.phone)}</a></p>
-          ${trip.notes ? `<p><b>${tr("notesLabel")}</b> ${escapeHtml(trip.notes)}</p>` : ""}
+          ${(trip.notes && String(trip.notes).trim()) ? `<p><b>${tr("notesLabel")}</b> ${escapeHtml(trip.notes)}</p>` : ""}
           <div class="trip-actions">
             <button class="delete-btn" onclick="deleteTrip(${Number(trip.id)})">${tr("deleteTripButton")}</button>
           </div>
@@ -855,6 +893,8 @@
     tripForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
+      const notesValue = document.getElementById("notes").value.trim();
+
       const payload = {
         driver_name: document.getElementById("driver_name").value.trim(),
         phone: document.getElementById("phone").value.trim(),
@@ -864,11 +904,18 @@
         trip_time: document.getElementById("trip_time").value,
         price_iqd: Number(document.getElementById("price_iqd").value),
         empty_seats: Number(document.getElementById("empty_seats").value),
-        notes: document.getElementById("notes").value.trim(),
+        notes: notesValue,
         route_name: "Other"
       };
 
-      const { error } = await client.from("trips").insert([payload]);
+      let { error } = await client.from("trips").insert([payload]);
+
+      if (error && String(error.message || "").toLowerCase().includes("notes")) {
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload.notes;
+        const retry = await client.from("trips").insert([fallbackPayload]);
+        error = retry.error;
+      }
 
       if (error) {
         showError("Could not post trip.\n\n" + error.message);
