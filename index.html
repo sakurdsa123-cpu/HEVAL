@@ -937,12 +937,6 @@
     languageSwitcher.value = savedLanguage;
     applyLanguage(savedLanguage);
 
-    setInterval(async () => {
-      if (lastLoadedFilters) {
-        await loadTrips(lastLoadedFilters);
-      }
-    }, 60000);
-
     tripForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
