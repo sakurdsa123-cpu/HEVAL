@@ -333,7 +333,7 @@
             <input id="trip_date" type="date" required />
             <input id="trip_time" type="time" placeholder="Time" />
 
-            <input id="price_iqd" type="number" placeholder="Price in IQD" required />
+            <div><input id="price_iqd" type="number" placeholder="Price in IQD" min="0" step="250" inputmode="numeric" required /><div id="priceHelp" class="muted" style="font-size:12px; margin-top:6px;">Use real IQD amounts: 0, 250, 500, 750, 1000...</div></div>
             <input id="empty_seats" type="number" placeholder="Empty seats" required />
           </div>
           <div style="margin-top: 12px;">
@@ -412,6 +412,7 @@
     const searchTripsBtn = document.getElementById("searchTripsBtn");
     const showLatestTripsBtn = document.getElementById("showLatestTripsBtn");
     const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+    const priceInput = document.getElementById("price_iqd");
 
     let lastLoadedFilters = null;
     let lastRenderedTrips = [];
@@ -472,7 +473,9 @@
         fromLabel: "From",
         toLabel: "To",
         datePlaceholder: "Date",
-        timePlaceholder: "Time"
+        timePlaceholder: "Time",
+        invalidPriceMessage: "Price must be a real IQD amount like 0, 250, 500, 750, 1000, and so on.",
+        priceHelpText: "Use real IQD amounts: 0, 250, 500, 750, 1000..."
       },
       ku: {
         appTitle: "Heval",
@@ -527,7 +530,9 @@
         fromLabel: "لە",
         toLabel: "بۆ",
         datePlaceholder: "بەروار",
-        timePlaceholder: "کات"
+        timePlaceholder: "کات",
+        invalidPriceMessage: "نرخ دەبێت بڕی ڕاستەقینەی دینار بێت وەک 0، 250، 500، 750، 1000 و هتد.",
+        priceHelpText: "بڕی ڕاستەقینەی دینار بەکاربهێنە: 0، 250، 500، 750، 1000..."
       },
       ar: {
         appTitle: "Heval",
@@ -582,7 +587,9 @@
         fromLabel: "من",
         toLabel: "إلى",
         datePlaceholder: "التاريخ",
-        timePlaceholder: "الوقت"
+        timePlaceholder: "الوقت",
+        invalidPriceMessage: "يجب أن يكون السعر مبلغاً حقيقياً بالدينار مثل 0 أو 250 أو 500 أو 750 أو 1000 وهكذا.",
+        priceHelpText: "استخدم مبالغ دينار حقيقية: 0، 250، 500، 750، 1000..."
       }
     };
 
@@ -609,6 +616,8 @@
       document.getElementById("toLabel").textContent = tr("toLabel");
       document.getElementById("trip_date").placeholder = tr("datePlaceholder");
       document.getElementById("trip_time").placeholder = tr("timePlaceholder");
+      document.getElementById("priceHelp").textContent = tr("priceHelpText");
+      updatePriceValidity();
       document.getElementById("postTripButton").textContent = tr("postTripButton");
       document.getElementById("findTripsTitle").textContent = tr("findTripsTitle");
       document.getElementById("findTripsDescription").textContent = tr("findTripsDescription");
@@ -649,6 +658,31 @@
       localStorage.setItem("heval_lang", lang);
     }
 
+
+
+    function isValidIqdPrice(value) {
+      const number = Number(value);
+      return Number.isFinite(number) && number >= 0 && number % 250 === 0;
+    }
+
+    function updatePriceValidity() {
+      const raw = priceInput.value.trim();
+      if (!raw) {
+        priceInput.setCustomValidity("");
+        return true;
+      }
+
+      if (!isValidIqdPrice(raw)) {
+        priceInput.setCustomValidity(tr("invalidPriceMessage"));
+        return false;
+      }
+
+      priceInput.setCustomValidity("");
+      return true;
+    }
+
+    priceInput.addEventListener("input", updatePriceValidity);
+    priceInput.addEventListener("blur", updatePriceValidity);
 
     function showSuccess(message) {
       successBox.textContent = message;
@@ -785,7 +819,7 @@
           </div>
           <p><b>${tr("driverLabel")}</b> ${escapeHtml(trip.driver_name)}</p>
           <p><b>${tr("phoneLabel")}</b> <a class="call-link" href="tel:${escapeHtml(trip.phone)}">${escapeHtml(trip.phone)}</a></p>
-          ${(trip.notes && String(trip.notes).trim()) ? `<p><b>${tr("notesLabel")}</b> ${escapeHtml(trip.notes)}</p>` : ""}
+          ${(((trip.notes && String(trip.notes).trim()) ? trip.notes : ((trip.route_name && String(trip.route_name).trim() && trip.route_name !== "Other") ? trip.route_name : ""))) ? `<p><b>${tr("notesLabel")}</b> ${escapeHtml((trip.notes && String(trip.notes).trim()) ? trip.notes : trip.route_name)}</p>` : ""}
           <div class="trip-actions">
             <button class="delete-btn" onclick="deleteTrip(${Number(trip.id)})">${tr("deleteTripButton")}</button>
           </div>
@@ -912,6 +946,11 @@
     tripForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
+      if (!updatePriceValidity()) {
+        priceInput.reportValidity();
+        return;
+      }
+
       const notesValue = document.getElementById("notes").value.trim();
 
       const payload = {
@@ -924,7 +963,7 @@
         price_iqd: Number(document.getElementById("price_iqd").value),
         empty_seats: Number(document.getElementById("empty_seats").value),
         notes: notesValue,
-        route_name: "Other"
+        route_name: notesValue || "Other"
       };
 
       let { error } = await client.from("trips").insert([payload]);
